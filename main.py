@@ -71,6 +71,25 @@ def add_player(players):
     db.write_players(players)
     print(f"{name} was added.\n")
 
+def remove_player(players):
+    try:
+        number = int(input("Number: "))
+    except ValueError:
+        print("Invalid number.\n")
+        return
+
+    index = number - 1
+
+    if index < 0 or index >= len(players):
+        print("Invalid lineup number.\n")
+        return
+
+    name = players[index][0]
+    players.pop(index)
+    db.write_players(players)
+
+    print(f"{name} was removed.\n")    
+
 
 def main():
     players = db.read_players()
@@ -83,6 +102,8 @@ def main():
             display_lineup(players)
         elif choice == "2":
             add_player(players)
+        elif choice == "3":
+             remove_player(players)    
         elif choice == "7":
             print("Bye!")
             break
