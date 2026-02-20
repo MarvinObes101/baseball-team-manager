@@ -88,8 +88,48 @@ def remove_player(players):
     players.pop(index)
     db.write_players(players)
 
-    print(f"{name} was removed.\n")    
+    print(f"{name} was removed.\n")
 
+def move_player(players):
+    # Get current lineup number
+    try:
+        current_num = int(input("Current lineup number: "))
+    except ValueError:
+        print("Invalid number.\n")
+        return
+
+    current_index = current_num - 1
+
+    # Validate current index
+    if current_index < 0 or current_index >= len(players):
+        print("Invalid lineup number.\n")
+        return
+
+    name = players[current_index][0]
+    print(f"{name} was selected.")
+
+    # Get new lineup number
+    try:
+        new_num = int(input("New lineup number: "))
+    except ValueError:
+        print("Invalid number.\n")
+        return
+
+    new_index = new_num - 1
+
+    # Validate new index
+    if new_index < 0 or new_index >= len(players):
+        print("Invalid lineup number.\n")
+        return
+
+    # Move the player
+    player = players.pop(current_index)
+    players.insert(new_index, player)
+
+    # Save changes
+    db.write_players(players)
+
+    print(f"{name} was moved.\n")        
 
 def main():
     players = db.read_players()
@@ -103,7 +143,9 @@ def main():
         elif choice == "2":
             add_player(players)
         elif choice == "3":
-             remove_player(players)    
+            remove_player(players)
+        elif choice == "4":
+            move_player(players)         
         elif choice == "7":
             print("Bye!")
             break
