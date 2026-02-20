@@ -129,7 +129,37 @@ def move_player(players):
     # Save changes
     db.write_players(players)
 
-    print(f"{name} was moved.\n")        
+    print(f"{name} was moved.\n")
+
+def edit_player_position(players):
+    # Get lineup number
+    try:
+        number = int(input("Number: "))
+    except ValueError:
+        print("Invalid number.\n")
+        return
+
+    index = number - 1
+
+    # Validate lineup number
+    if index < 0 or index >= len(players):
+        print("Invalid lineup number.\n")
+        return
+
+    # Show selected player
+    name = players[index][0]
+    print(f"{name} was selected.")
+
+    # Get and validate new position
+    pos = get_position("Position: ")
+
+    # Update position (players row format: [name, pos, ab, hits])
+    players[index][1] = pos
+
+    # Save changes
+    db.write_players(players)
+
+    print(f"{name} was updated.\n")            
 
 def main():
     players = db.read_players()
@@ -145,7 +175,9 @@ def main():
         elif choice == "3":
             remove_player(players)
         elif choice == "4":
-            move_player(players)         
+            move_player(players)
+        elif choice == "5":
+            edit_player_position(players)             
         elif choice == "7":
             print("Bye!")
             break
