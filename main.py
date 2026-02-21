@@ -6,6 +6,7 @@ LINE = "=" * 64
 
 
 def display_menu():
+    """Display the main menu and valid positions."""
     print(LINE)
     print(" Baseball Team Manager")
     print(" MENU OPTIONS")
@@ -22,6 +23,7 @@ def display_menu():
 
 
 def get_int(prompt):
+    """Get a valid integer from the user."""
     while True:
         try:
             return int(input(prompt))
@@ -30,6 +32,7 @@ def get_int(prompt):
 
 
 def get_position(prompt):
+    """Get a valid baseball position from the user."""
     while True:
         pos = input(prompt).strip().upper()
         if pos in POSITIONS:
@@ -37,16 +40,38 @@ def get_position(prompt):
         print("Invalid position. Please try again.")
 
 
+def get_player_index(players, prompt="Number: "):
+    """
+    Get a valid lineup number from the user and return a 0-based index.
+    Return None if invalid.
+    """
+    try:
+        number = int(input(prompt))
+    except ValueError:
+        print("Invalid number.\n")
+        return None
+
+    index = number - 1
+    if index < 0 or index >= len(players):
+        print("Invalid lineup number.\n")
+        return None
+
+    return index
+
+
 def calc_avg(at_bats, hits):
+    """Calculate batting average rounded to 3 decimals."""
     if at_bats == 0:
         return 0.0
     return round(hits / at_bats, 3)
 
 
 def display_lineup(players):
+    """Display the lineup in aligned columns."""
     print()
     print(f"{'Player':<22}{'POS':<5}{'AB':<6}{'H':<6}{'AVG'}")
     print("-" * 50)
+
     for i, p in enumerate(players, start=1):
         name = p[0]
         pos = p[1]
@@ -54,132 +79,14 @@ def display_lineup(players):
         hits = int(p[3])
         avg = calc_avg(ab, hits)
         print(f"{i:<2} {name:<20}{pos:<5}{ab:<6}{hits:<6}{avg:.3f}")
+
     print()
 
 
 def add_player(players):
+    """Add a new player and save to CSV."""
     name = input("Name: ").strip()
     pos = get_position("Position: ")
-    ab = get_int("At bats: ")
-    hits = get_int("Hits: ")
-
-    if ab < 0 or hits < 0 or hits > ab:
-        print("Invalid stats. Hits must be 0..at_bats and values can't be negative.\n")
-        return
-
-    players.append([name, pos, str(ab), str(hits)])
-    db.write_players(players)
-    print(f"{name} was added.\n")
-
-def remove_player(players):
-    try:
-        number = int(input("Number: "))
-    except ValueError:
-        print("Invalid number.\n")
-        return
-
-    index = number - 1
-
-    if index < 0 or index >= len(players):
-        print("Invalid lineup number.\n")
-        return
-
-    name = players[index][0]
-    players.pop(index)
-    db.write_players(players)
-
-    print(f"{name} was removed.\n")
-
-def move_player(players):
-    # Get current lineup number
-    try:
-        current_num = int(input("Current lineup number: "))
-    except ValueError:
-        print("Invalid number.\n")
-        return
-
-    current_index = current_num - 1
-
-    # Validate current index
-    if current_index < 0 or current_index >= len(players):
-        print("Invalid lineup number.\n")
-        return
-
-    name = players[current_index][0]
-    print(f"{name} was selected.")
-
-    # Get new lineup number
-    try:
-        new_num = int(input("New lineup number: "))
-    except ValueError:
-        print("Invalid number.\n")
-        return
-
-    new_index = new_num - 1
-
-    # Validate new index
-    if new_index < 0 or new_index >= len(players):
-        print("Invalid lineup number.\n")
-        return
-
-    # Move the player
-    player = players.pop(current_index)
-    players.insert(new_index, player)
-
-    # Save changes
-    db.write_players(players)
-
-    print(f"{name} was moved.\n")
-
-def edit_player_position(players):
-    # Get lineup number
-    try:
-        number = int(input("Number: "))
-    except ValueError:
-        print("Invalid number.\n")
-        return
-
-    index = number - 1
-
-    # Validate lineup number
-    if index < 0 or index >= len(players):
-        print("Invalid lineup number.\n")
-        return
-
-    # Show selected player
-    name = players[index][0]
-    print(f"{name} was selected.")
-
-    # Get and validate new position
-    pos = get_position("Position: ")
-
-    # Update position (players row format: [name, pos, ab, hits])
-    players[index][1] = pos
-
-    # Save changes
-    db.write_players(players)
-
-    print(f"{name} was updated.\n")   
-
-def edit_player_stats(players):
-    # Get lineup number
-    try:
-        number = int(input("Number: "))
-    except ValueError:
-        print("Invalid number.\n")
-        return
-
-    index = number - 1
-
-    # Validate lineup number
-    if index < 0 or index >= len(players):
-        print("Invalid lineup number.\n")
-        return
-
-    name = players[index][0]
-    print(f"{name} was selected.")
-
-    # Get new stats
     ab = get_int("At bats: ")
     hits = get_int("Hits: ")
 
@@ -188,16 +95,82 @@ def edit_player_stats(players):
         print("Invalid stats. Hits must be 0..at_bats and values can't be negative.\n")
         return
 
-    # Update stats (players row format: [name, pos, ab, hits])
+    # Append as strings to match CSV writing
+    players.append([name, pos, str(ab), str(hits)])
+    db.write_players(players)
+    print(f"{name} was added.\n")
+
+
+def remove_player(players):
+    """Remove a player by lineup number and save."""
+    index = get_player_index(players)
+    if index is None:
+        return
+
+    name = players[index][0]
+    players.pop(index)
+    db.write_players(players)
+    print(f"{name} was removed.\n")
+
+
+def move_player(players):
+    """Move a player to a new lineup position and save."""
+    current_index = get_player_index(players, "Current lineup number: ")
+    if current_index is None:
+        return
+
+    name = players[current_index][0]
+    print(f"{name} was selected.")
+
+    new_index = get_player_index(players, "New lineup number: ")
+    if new_index is None:
+        return
+
+    player = players.pop(current_index)
+    players.insert(new_index, player)
+    db.write_players(players)
+    print(f"{name} was moved.\n")
+
+
+def edit_player_position(players):
+    """Edit a player's position and save."""
+    index = get_player_index(players)
+    if index is None:
+        return
+
+    name = players[index][0]
+    print(f"{name} was selected.")
+
+    pos = get_position("Position: ")
+    players[index][1] = pos
+    db.write_players(players)
+    print(f"{name} was updated.\n")
+
+
+def edit_player_stats(players):
+    """Edit a player's at-bats and hits and save."""
+    index = get_player_index(players)
+    if index is None:
+        return
+
+    name = players[index][0]
+    print(f"{name} was selected.")
+
+    ab = get_int("At bats: ")
+    hits = get_int("Hits: ")
+
+    if ab < 0 or hits < 0 or hits > ab:
+        print("Invalid stats. Hits must be 0..at_bats and values can't be negative.\n")
+        return
+
     players[index][2] = str(ab)
     players[index][3] = str(hits)
-
-    # Save changes
     db.write_players(players)
+    print(f"{name} was updated.\n")
 
-    print(f"{name} was updated.\n")             
 
 def main():
+    """Main program loop (procedural Section 2 version)."""
     players = db.read_players()
 
     while True:
@@ -215,12 +188,12 @@ def main():
         elif choice == "5":
             edit_player_position(players)
         elif choice == "6":
-            edit_player_stats(players)                 
+            edit_player_stats(players)
         elif choice == "7":
             print("Bye!")
             break
         else:
-            print("Feature not added yet.\n")
+            print("Invalid menu option. Please try again.\n")
 
 
 if __name__ == "__main__":
