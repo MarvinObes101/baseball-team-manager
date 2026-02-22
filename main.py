@@ -1,199 +1,140 @@
 import db
-
-# Constants
-POSITIONS = ("C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "P")
-LINE = "=" * 64
+import ui
+from objects import Player, Lineup, POSITIONS
 
 
-def display_menu():
-    """Display the main menu and valid positions."""
-    print(LINE)
-    print(" Baseball Team Manager")
-    print(" MENU OPTIONS")
-    print(" 1 - Display lineup")
-    print(" 2 - Add player")
-    print(" 3 - Remove player")
-    print(" 4 - Move player")
-    print(" 5 - Edit player position")
-    print(" 6 - Edit player stats")
-    print(" 7 - Exit program")
-    print(" POSITIONS")
-    print(", ".join(POSITIONS))
-    print(LINE)
+def validate_stats(at_bats, hits):
+    """Return True if stats are valid, otherwise False."""
+    return at_bats >= 0 and hits >= 0 and hits <= at_bats
 
 
-def get_int(prompt):
-    """Get a valid integer from the user."""
-    while True:
-        try:
-            return int(input(prompt))
-        except ValueError:
-            print("Invalid integer. Please try again.")
-
-
-def get_position(prompt):
-    """Get a valid baseball position from the user."""
-    while True:
-        pos = input(prompt).strip().upper()
-        if pos in POSITIONS:
-            return pos
-        print("Invalid position. Please try again.")
-
-
-def get_player_index(players, prompt="Number: "):
+def get_valid_index(lineup, prompt="Number: "):
     """
-    Get a valid lineup number from the user and return a 0-based index.
-    Return None if invalid.
+    Get a 0-based index for the lineup.
+    Returns None if invalid.
     """
-    try:
-        number = int(input(prompt))
-    except ValueError:
-        print("Invalid number.\n")
-        return None
-
+    number = ui.get_player_number(prompt)
     index = number - 1
-    if index < 0 or index >= len(players):
-        print("Invalid lineup number.\n")
+
+    if index < 0 or index >= lineup.count:
+        ui.display_message("Invalid lineup number.")
         return None
 
     return index
 
 
-def calc_avg(at_bats, hits):
-    """Calculate batting average rounded to 3 decimals."""
-    if at_bats == 0:
-        return 0.0
-    return round(hits / at_bats, 3)
+def add_player(lineup):
+    """Handle menu option 2: add player."""
+    name = input("Name: ").strip()  # keeping simple like Section 1/2
+    position = ui.get_position("Position: ")
+    at_bats = ui.get_int("At bats: ")
+    hits = ui.get_int("Hits: ")
 
-
-def display_lineup(players):
-    """Display the lineup in aligned columns."""
-    print()
-    print(f"{'Player':<22}{'POS':<5}{'AB':<6}{'H':<6}{'AVG'}")
-    print("-" * 50)
-
-    for i, p in enumerate(players, start=1):
-        name = p[0]
-        pos = p[1]
-        ab = int(p[2])
-        hits = int(p[3])
-        avg = calc_avg(ab, hits)
-        print(f"{i:<2} {name:<20}{pos:<5}{ab:<6}{hits:<6}{avg:.3f}")
-
-    print()
-
-
-def add_player(players):
-    """Add a new player and save to CSV."""
-    name = input("Name: ").strip()
-    pos = get_position("Position: ")
-    ab = get_int("At bats: ")
-    hits = get_int("Hits: ")
-
-    # Validate stats
-    if ab < 0 or hits < 0 or hits > ab:
-        print("Invalid stats. Hits must be 0..at_bats and values can't be negative.\n")
+    if not validate_stats(at_bats, hits):
+        ui.display_message("Invalid stats. Hits must be 0..at_bats and values can't be negative.")
         return
 
-    # Append as strings to match CSV writing
-    players.append([name, pos, str(ab), str(hits)])
-    db.write_players(players)
-    print(f"{name} was added.\n")
+    lineup.add_player(Player(name, position, at_bats, hits))
+    db.write_players(lineup)
+    ui.display_message(f"{name} was added.")
 
 
-def remove_player(players):
-    """Remove a player by lineup number and save."""
-    index = get_player_index(players)
+def remove_player(lineup):
+    """Handle menu option 3: remove player."""
+    index = get_valid_index(lineup)
     if index is None:
         return
 
-    name = players[index][0]
-    players.pop(index)
-    db.write_players(players)
-    print(f"{name} was removed.\n")
+    name = lineup.get_player(index).name
+    lineup.remove_player(index)
+    db.write_players(lineup)
+    ui.display_message(f"{name} was removed.")
 
 
-def move_player(players):
-    """Move a player to a new lineup position and save."""
-    current_index = get_player_index(players, "Current lineup number: ")
+def move_player(lineup):
+    """Handle menu option 4: move player."""
+    current_index = get_valid_index(lineup, "Current lineup number: ")
     if current_index is None:
         return
 
-    name = players[current_index][0]
-    print(f"{name} was selected.")
+    name = lineup.get_player(current_index).name
+    ui.display_message(f"{name} was selected.")
 
-    new_index = get_player_index(players, "New lineup number: ")
+    new_index = get_valid_index(lineup, "New lineup number: ")
     if new_index is None:
         return
 
-    player = players.pop(current_index)
-    players.insert(new_index, player)
-    db.write_players(players)
-    print(f"{name} was moved.\n")
+    lineup.move_player(current_index, new_index)
+    db.write_players(lineup)
+    ui.display_message(f"{name} was moved.")
 
 
-def edit_player_position(players):
-    """Edit a player's position and save."""
-    index = get_player_index(players)
+def edit_player_position(lineup):
+    """Handle menu option 5: edit position."""
+    index = get_valid_index(lineup)
     if index is None:
         return
 
-    name = players[index][0]
-    print(f"{name} was selected.")
+    player = lineup.get_player(index)
+    ui.display_message(f"{player.name} was selected.")
 
-    pos = get_position("Position: ")
-    players[index][1] = pos
-    db.write_players(players)
-    print(f"{name} was updated.\n")
+    position = ui.get_position("Position: ")
+    lineup.update_position(index, position)
+    db.write_players(lineup)
+    ui.display_message(f"{player.name} was updated.")
 
 
-def edit_player_stats(players):
-    """Edit a player's at-bats and hits and save."""
-    index = get_player_index(players)
+def edit_player_stats(lineup):
+    """Handle menu option 6: edit stats."""
+    index = get_valid_index(lineup)
     if index is None:
         return
 
-    name = players[index][0]
-    print(f"{name} was selected.")
+    player = lineup.get_player(index)
+    ui.display_message(f"{player.name} was selected.")
 
-    ab = get_int("At bats: ")
-    hits = get_int("Hits: ")
+    at_bats = ui.get_int("At bats: ")
+    hits = ui.get_int("Hits: ")
 
-    if ab < 0 or hits < 0 or hits > ab:
-        print("Invalid stats. Hits must be 0..at_bats and values can't be negative.\n")
+    if not validate_stats(at_bats, hits):
+        ui.display_message("Invalid stats. Hits must be 0..at_bats and values can't be negative.")
         return
 
-    players[index][2] = str(ab)
-    players[index][3] = str(hits)
-    db.write_players(players)
-    print(f"{name} was updated.\n")
+    lineup.update_stats(index, at_bats, hits)
+    db.write_players(lineup)
+    ui.display_message(f"{player.name} was updated.")
 
 
 def main():
-    """Main program loop (procedural Section 2 version)."""
+    # Load Player objects from CSV
     players = db.read_players()
 
+    # Put them into a Lineup object
+    lineup = Lineup()
+    for p in players:
+        lineup.add_player(p)
+
     while True:
-        display_menu()
-        choice = input("Menu option: ").strip()
+        ui.display_menu()
+        choice = ui.get_menu_option()
 
         if choice == "1":
-            display_lineup(players)
+            ui.display_lineup(lineup)
         elif choice == "2":
-            add_player(players)
+            add_player(lineup)
         elif choice == "3":
-            remove_player(players)
+            remove_player(lineup)
         elif choice == "4":
-            move_player(players)
+            move_player(lineup)
         elif choice == "5":
-            edit_player_position(players)
+            edit_player_position(lineup)
         elif choice == "6":
-            edit_player_stats(players)
+            edit_player_stats(lineup)
         elif choice == "7":
-            print("Bye!")
+            ui.display_message("Bye!")
             break
         else:
-            print("Invalid menu option. Please try again.\n")
+            ui.display_message("Invalid menu option. Please try again.")
 
 
 if __name__ == "__main__":
