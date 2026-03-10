@@ -1,5 +1,8 @@
-# ui.py
-# Contains ONLY input/output (printing and user input)
+"""
+User interface module for the Baseball Team Manager application.
+
+This module handles all console input and output.
+"""
 
 from objects import POSITIONS
 
@@ -7,7 +10,9 @@ LINE = "=" * 64
 
 
 def display_menu():
-    """Display the menu and valid positions."""
+    """
+    Display the main menu and list of valid positions.
+    """
     print(LINE)
     print(" Baseball Team Manager")
     print(" MENU OPTIONS")
@@ -24,12 +29,25 @@ def display_menu():
 
 
 def get_menu_option():
-    """Get the user's menu choice as a string."""
+    """
+    Prompt the user for a menu option.
+
+    Returns:
+        str: The selected menu option.
+    """
     return input("Menu option: ").strip()
 
 
 def get_int(prompt):
-    """Get a valid integer from the user."""
+    """
+    Prompt the user for an integer.
+
+    Args:
+        prompt (str): Input prompt message.
+
+    Returns:
+        int: A valid integer.
+    """
     while True:
         try:
             return int(input(prompt))
@@ -38,7 +56,15 @@ def get_int(prompt):
 
 
 def get_position(prompt):
-    """Get a valid baseball position from the user."""
+    """
+    Prompt the user for a valid baseball position.
+
+    Args:
+        prompt (str): Input prompt message.
+
+    Returns:
+        str: A valid position code.
+    """
     while True:
         pos = input(prompt).strip().upper()
         if pos in POSITIONS:
@@ -47,7 +73,15 @@ def get_position(prompt):
 
 
 def get_player_number(prompt="Number: "):
-    """Get a lineup number (1-based) from the user."""
+    """
+    Prompt the user for a lineup number.
+
+    Args:
+        prompt (str): Input prompt message.
+
+    Returns:
+        int: A valid integer lineup number.
+    """
     while True:
         try:
             return int(input(prompt))
@@ -56,21 +90,26 @@ def get_player_number(prompt="Number: "):
 
 
 def display_lineup(lineup):
-    """Display the lineup (Lineup is iterable)."""
+    """
+    Display all players in the lineup.
+
+    Args:
+        lineup: An iterable collection of Player objects.
+    """
     print()
     print(f"{'Player':<22}{'POS':<5}{'AB':<6}{'H':<6}{'AVG'}")
     print("-" * 50)
-
     for i, player in enumerate(lineup, start=1):
-        print(
-            f"{i:<2} {player.name:<20}{player.position:<5}"
-            f"{player.at_bats:<6}{player.hits:<6}{player.average:.3f}"
-        )
-
+        print(f"{i:<2} {player.name:<20}{player.position:<5}{player.at_bats:<6}{player.hits:<6}{player.average:.3f}")
     print()
 
 
 def display_message(message):
-    """Display a simple message."""
+    """
+    Display a message to the user.
+
+    Args:
+        message (str): The message to display.
+    """
     print(message)
     print()

@@ -1,118 +1,63 @@
+"""
+main.py
+
+Main controller for the Baseball Team Manager application.
+
+This module coordinates the interaction between:
+- ui.py for user interface operations
+- db.py for reading and writing player data
+- objects.py for Player and Lineup classes
+
+The program loads players from the CSV file, allows the user
+to manage the lineup through a menu-driven interface, and
+saves updates back to the file.
+"""
+
 import db
 import ui
-from objects import Player, Lineup, POSITIONS
+from objects import Player, Lineup
 
 
 def validate_stats(at_bats, hits):
-    """Return True if stats are valid, otherwise False."""
+    """
+    Validate batting statistics.
+
+    Args:
+        at_bats (int): Number of at-bats.
+        hits (int): Number of hits.
+
+    Returns:
+        bool: True if the statistics are valid, otherwise False.
+    """
     return at_bats >= 0 and hits >= 0 and hits <= at_bats
 
 
-def get_valid_index(lineup, prompt="Number: "):
+def load_lineup():
     """
-    Get a 0-based index for the lineup.
-    Returns None if invalid.
+    Load players from the CSV file and create a Lineup object.
+
+    Returns:
+        Lineup: A lineup object populated with players.
     """
-    number = ui.get_player_number(prompt)
-    index = number - 1
+    players = db.read_players()
+    lineup = Lineup()
 
-    if index < 0 or index >= lineup.count:
-        ui.display_message("Invalid lineup number.")
-        return None
+    for player in players:
+        lineup.add_player(player)
 
-    return index
-
-
-def add_player(lineup):
-    """Handle menu option 2: add player."""
-    name = input("Name: ").strip()  # keeping simple like Section 1/2
-    position = ui.get_position("Position: ")
-    at_bats = ui.get_int("At bats: ")
-    hits = ui.get_int("Hits: ")
-
-    if not validate_stats(at_bats, hits):
-        ui.display_message("Invalid stats. Hits must be 0..at_bats and values can't be negative.")
-        return
-
-    lineup.add_player(Player(name, position, at_bats, hits))
-    db.write_players(lineup)
-    ui.display_message(f"{name} was added.")
-
-
-def remove_player(lineup):
-    """Handle menu option 3: remove player."""
-    index = get_valid_index(lineup)
-    if index is None:
-        return
-
-    name = lineup.get_player(index).name
-    lineup.remove_player(index)
-    db.write_players(lineup)
-    ui.display_message(f"{name} was removed.")
-
-
-def move_player(lineup):
-    """Handle menu option 4: move player."""
-    current_index = get_valid_index(lineup, "Current lineup number: ")
-    if current_index is None:
-        return
-
-    name = lineup.get_player(current_index).name
-    ui.display_message(f"{name} was selected.")
-
-    new_index = get_valid_index(lineup, "New lineup number: ")
-    if new_index is None:
-        return
-
-    lineup.move_player(current_index, new_index)
-    db.write_players(lineup)
-    ui.display_message(f"{name} was moved.")
-
-
-def edit_player_position(lineup):
-    """Handle menu option 5: edit position."""
-    index = get_valid_index(lineup)
-    if index is None:
-        return
-
-    player = lineup.get_player(index)
-    ui.display_message(f"{player.name} was selected.")
-
-    position = ui.get_position("Position: ")
-    lineup.update_position(index, position)
-    db.write_players(lineup)
-    ui.display_message(f"{player.name} was updated.")
-
-
-def edit_player_stats(lineup):
-    """Handle menu option 6: edit stats."""
-    index = get_valid_index(lineup)
-    if index is None:
-        return
-
-    player = lineup.get_player(index)
-    ui.display_message(f"{player.name} was selected.")
-
-    at_bats = ui.get_int("At bats: ")
-    hits = ui.get_int("Hits: ")
-
-    if not validate_stats(at_bats, hits):
-        ui.display_message("Invalid stats. Hits must be 0..at_bats and values can't be negative.")
-        return
-
-    lineup.update_stats(index, at_bats, hits)
-    db.write_players(lineup)
-    ui.display_message(f"{player.name} was updated.")
+    return lineup
 
 
 def main():
-    # Load Player objects from CSV
-    players = db.read_players()
+    """
+    Main program loop.
 
-    # Put them into a Lineup object
-    lineup = Lineup()
-    for p in players:
-        lineup.add_player(p)
+    Displays the menu, processes user commands, and performs
+    lineup operations such as adding, removing, moving, and
+    editing players.
+    """
+
+    lineup = load_lineup()
 
     while True:
         ui.display_menu()
@@ -120,21 +65,65 @@ def main():
 
         if choice == "1":
             ui.display_lineup(lineup)
+
         elif choice == "2":
-            add_player(lineup)
+            name = input("Name: ")
+            pos = ui.get_position("Position: ")
+            ab = ui.get_int("At bats: ")
+            hits = ui.get_int("Hits: ")
+
+            if not validate_stats(ab, hits):
+                ui.display_message("Invalid stats. Hits must be 0..at_bats.")
+                continue
+
+            player = Player(name, pos, ab, hits)
+            lineup.add_player(player)
+            db.write_players(lineup)
+            ui.display_message(f"{name} was added.")
+
         elif choice == "3":
-            remove_player(lineup)
+            index = ui.get_player_number("Number: ") - 1
+            player = lineup.get_player(index)
+            lineup.remove_player(index)
+            db.write_players(lineup)
+            ui.display_message(f"{player.name} was removed.")
+
         elif choice == "4":
-            move_player(lineup)
+            current = ui.get_player_number("Current lineup number: ") - 1
+            new = ui.get_player_number("New lineup number: ") - 1
+            player = lineup.get_player(current)
+            lineup.move_player(current, new)
+            db.write_players(lineup)
+            ui.display_message(f"{player.name} was moved.")
+
         elif choice == "5":
-            edit_player_position(lineup)
+            index = ui.get_player_number("Number: ") - 1
+            pos = ui.get_position("Position: ")
+            player = lineup.get_player(index)
+            lineup.update_position(index, pos)
+            db.write_players(lineup)
+            ui.display_message(f"{player.name} was updated.")
+
         elif choice == "6":
-            edit_player_stats(lineup)
+            index = ui.get_player_number("Number: ") - 1
+            ab = ui.get_int("At bats: ")
+            hits = ui.get_int("Hits: ")
+
+            if not validate_stats(ab, hits):
+                ui.display_message("Invalid stats. Hits must be 0..at_bats.")
+                continue
+
+            player = lineup.get_player(index)
+            lineup.update_stats(index, ab, hits)
+            db.write_players(lineup)
+            ui.display_message(f"{player.name} was updated.")
+
         elif choice == "7":
-            ui.display_message("Bye!")
+            print("Bye!")
             break
+
         else:
-            ui.display_message("Invalid menu option. Please try again.")
+            ui.display_message("Invalid menu option.")
 
 
 if __name__ == "__main__":
